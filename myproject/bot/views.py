@@ -10,6 +10,7 @@ from linebot.models import ImageSendMessage, FlexSendMessage, BubbleContainer, B
 import requests
 from .models import Book
 import threading  # 非同期処理のためのモジュール
+from linebot.models import CarouselContainer, URIAction
 
 
 line_bot_api = LineBotApi(settings.LINE_CHANNEL_ACCESS_TOKEN)
@@ -66,6 +67,8 @@ def handle_message(event):
             else:
                 response = "No book information to save."
             send_response(event.reply_token, response)
+        elif message_text == "list books":
+            list_books(event)  # 登録中の本のリストを表示
         elif message_text == "menu":  # クイックリプライを表示
             send_quick_reply(event)
         else:
@@ -95,8 +98,8 @@ def send_response(reply_token, message):
 def send_quick_reply(event):
     quick_reply_text = "Please select an option:"
     quick_reply_buttons = [
-        QuickReplyButton(action=MessageAction(label="View Tasks", text="tasklist")),
-        QuickReplyButton(action=MessageAction(label="テクノロジーのニュース", text="news technology"))
+        QuickReplyButton(action=MessageAction(label="本リスト", text="list books")),
+        # QuickReplyButton(action=MessageAction(label="テクノロジーのニュース", text="news technology"))
     ]
     
     quick_reply_message = TextSendMessage(
@@ -244,3 +247,72 @@ def save_book_info(book_info):
         'description': book.description
     }
 
+# 登録中の本リストを表示
+def list_books(event):
+    books = Book.objects.all()  # すべての登録された本を取得
+    
+    if books.exists():
+        bubbles = []
+        
+        for book in books:
+            # URLがhttpの場合はhttpsに変換
+            thumbnail_url = book.thumbnail if book.thumbnail else "https://via.placeholder.com/300x200.png?text=No+Image"
+            thumbnail_url = thumbnail_url.replace("http://", "https://")
+
+            bubble = BubbleContainer(
+                hero=ImageComponent(
+                    url=thumbnail_url,
+                    size="full",
+                    aspect_ratio="20:13",
+                    aspect_mode="fit",
+                    action=URIAction(uri="https://line.me/")
+                ),
+                body=BoxComponent(
+                    layout="vertical",
+                    contents=[
+                        TextComponent(text=book.title, weight="bold", size="lg"),
+                        BoxComponent(
+                            layout="vertical",
+                            margin="lg",
+                            spacing="sm",
+                            contents=[
+                                BoxComponent(
+                                    layout="baseline",
+                                    spacing="sm",
+                                    contents=[
+                                        TextComponent(text="著者", color="#aaaaaa", size="sm", flex=1),
+                                        TextComponent(text=book.authors, wrap=True, color="#666666", size="sm", flex=5)
+                                    ]
+                                )
+                            ]
+                        )
+                    ]
+                ),
+                footer=BoxComponent(
+                    layout="vertical",
+                    spacing="sm",
+                    contents=[
+                        ButtonComponent(
+                            style="link",
+                            height="sm",
+                            action=URIAction(label="詳細", uri=f"https://example.com/books/{book.id}")
+                        ),
+                        ButtonComponent(
+                            style="link",
+                            height="sm",
+                            action=URIAction(label="delete", uri="https://line.me/")
+                        )
+                    ],
+                    flex=0
+                )
+            )
+            bubbles.append(bubble)
+
+        carousel = CarouselContainer(contents=bubbles)
+
+        flex_message = FlexSendMessage(alt_text="Book list", contents=carousel)
+        line_bot_api.reply_message(event.reply_token, flex_message)
+
+    else:
+        message = TextSendMessage(text="No books are currently registered.")
+        line_bot_api.reply_message(event.reply_token, message)
