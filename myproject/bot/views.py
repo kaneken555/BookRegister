@@ -19,6 +19,8 @@ handler = WebhookHandler(settings.LINE_CHANNEL_SECRET)
 # 一時的なストレージ
 temporary_storage = {}
 
+# ユーザーの状態を管理するためのストレージ
+user_states = {}
 
 # Example: 非同期で実行する関数
 def perform_long_task(user_id, book_info):
@@ -53,11 +55,26 @@ def handle_message(event):
     user_id = event.source.user_id  # ユーザーIDを取得
 
     try:
-        if message_text.startswith("book "):  # 'book 'で始まるメッセージに対してGoogle Books APIを使用
-            title_query = message_text.split(" ", 1)[1]
+        # ユーザーが検索モードかどうか確認
+        if user_states.get(user_id) == "search_mode":
+            # 検索モードの場合、入力されたメッセージを本のタイトルとして検索
+            title_query = message_text
             book_info = search_books(title_query)
-            temporary_storage[user_id] = book_info  # 検索結果を一時的に保存
-            send_book_info_with_thumbnail(event, book_info)
+            
+            # 検索結果が見つかったか確認
+            if not book_info or book_info['title'] == 'No books found for your query.':
+                send_response(event.reply_token, "該当する本が見つかりませんでした。別のタイトルを入力してください。")
+            else:
+                temporary_storage[user_id] = book_info  # 検索結果を一時的に保存
+                send_book_info_with_thumbnail(event, book_info)
+            
+            user_states[user_id] = None  # 検索モードを解除
+
+        elif message_text == "検索":
+            # 検索モードに変更
+            user_states[user_id] = "search_mode"
+            response = "検索したい本のタイトルを入力してください。"
+            send_response(event.reply_token, response)
         elif message_text == "save book":  # 保存する場合
             book_info = temporary_storage.get(user_id)  # 保存された検索結果を取得
             if book_info:
@@ -98,6 +115,7 @@ def send_response(reply_token, message):
 def send_quick_reply(event):
     quick_reply_text = "Please select an option:"
     quick_reply_buttons = [
+        QuickReplyButton(action=MessageAction(label="検索", text="検索")),
         QuickReplyButton(action=MessageAction(label="本リスト", text="list books")),
         # QuickReplyButton(action=MessageAction(label="テクノロジーのニュース", text="news technology"))
     ]
