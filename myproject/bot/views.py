@@ -10,6 +10,7 @@ from linebot.models import ImageSendMessage, FlexSendMessage, BubbleContainer, B
 import requests
 from .models import Book
 import threading  # 非同期処理のためのモジュール
+from linebot.models import CarouselContainer, URIAction
 
 
 line_bot_api = LineBotApi(settings.LINE_CHANNEL_ACCESS_TOKEN)
@@ -249,12 +250,64 @@ def save_book_info(book_info):
 # 登録中の本リストを表示
 def list_books(event):
     books = Book.objects.all()  # すべての登録された本を取得
-
+    
     if books.exists():
-        book_list = "\n".join([f"Title: {book.title}, Authors: {book.authors}" for book in books])
-    else:
-        book_list = "No books are currently registered."
+        bubbles = []
+        
+        for book in books:
+            # URLがhttpの場合はhttpsに変換
+            thumbnail_url = book.thumbnail if book.thumbnail else "https://via.placeholder.com/300x200.png?text=No+Image"
+            thumbnail_url = thumbnail_url.replace("http://", "https://")
 
-    # メッセージをLINEに送信
-    message = TextSendMessage(text=book_list)
-    line_bot_api.reply_message(event.reply_token, message)
+            bubble = BubbleContainer(
+                hero=ImageComponent(
+                    url=thumbnail_url,
+                    size="full",
+                    aspect_ratio="20:13",
+                    aspect_mode="cover",
+                    action=URIAction(uri="https://line.me/")
+                ),
+                body=BoxComponent(
+                    layout="vertical",
+                    contents=[
+                        TextComponent(text=book.title, weight="bold", size="xl"),
+                        BoxComponent(
+                            layout="vertical",
+                            margin="lg",
+                            spacing="sm",
+                            contents=[
+                                BoxComponent(
+                                    layout="baseline",
+                                    spacing="sm",
+                                    contents=[
+                                        TextComponent(text="著者", color="#aaaaaa", size="sm", flex=1),
+                                        TextComponent(text=book.authors, wrap=True, color="#666666", size="sm", flex=5)
+                                    ]
+                                )
+                            ]
+                        )
+                    ]
+                ),
+                footer=BoxComponent(
+                    layout="vertical",
+                    spacing="sm",
+                    contents=[
+                        ButtonComponent(
+                            style="link",
+                            height="sm",
+                            action=URIAction(label="delete", uri="https://line.me/")
+                        )
+                    ],
+                    flex=0
+                )
+            )
+            bubbles.append(bubble)
+
+        carousel = CarouselContainer(contents=bubbles)
+
+        flex_message = FlexSendMessage(alt_text="Book list", contents=carousel)
+        line_bot_api.reply_message(event.reply_token, flex_message)
+
+    else:
+        message = TextSendMessage(text="No books are currently registered.")
+        line_bot_api.reply_message(event.reply_token, message)
