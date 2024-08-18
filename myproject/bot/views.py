@@ -69,6 +69,7 @@ def handle_message(event):
                 send_book_info_with_thumbnail(event, book_info)
             
             user_states[user_id] = None  # 検索モードを解除
+            send_push_quick_reply(user_id)  # 次の操作を促すクイックリプライを表示
 
         elif message_text == "検索":
             # 検索モードに変更
@@ -86,11 +87,12 @@ def handle_message(event):
             send_response(event.reply_token, response)
         elif message_text == "list books":
             list_books(event)  # 登録中の本のリストを表示
+            send_push_quick_reply(user_id)  # 次の操作を促すクイックリプライを表示
         elif message_text == "menu":  # クイックリプライを表示
             send_quick_reply(event)
         else:
-            response = f"You said: {event.message.text}"
-            send_response(event.reply_token, response)
+            # 初回メッセージなどその他のメッセージはクイックリプライを表示
+            send_quick_reply(event)
 
     except LineBotApiError as e:
         print(f"LineBotApiError: {e.status_code}, {e.message}")
@@ -117,7 +119,6 @@ def send_quick_reply(event):
     quick_reply_buttons = [
         QuickReplyButton(action=MessageAction(label="検索", text="検索")),
         QuickReplyButton(action=MessageAction(label="本リスト", text="list books")),
-        # QuickReplyButton(action=MessageAction(label="テクノロジーのニュース", text="news technology"))
     ]
     
     quick_reply_message = TextSendMessage(
@@ -127,6 +128,23 @@ def send_quick_reply(event):
     
     line_bot_api.reply_message(
         event.reply_token,
+        quick_reply_message
+    )
+
+def send_push_quick_reply(user_id):
+    quick_reply_text = "操作を選択してください:"
+    quick_reply_buttons = [
+        QuickReplyButton(action=MessageAction(label="検索", text="検索")),
+        QuickReplyButton(action=MessageAction(label="本リスト", text="list books"))
+    ]
+    
+    quick_reply_message = TextSendMessage(
+        text=quick_reply_text,
+        quick_reply=QuickReply(items=quick_reply_buttons)
+    )
+    
+    line_bot_api.push_message(
+        user_id,
         quick_reply_message
     )
     
