@@ -264,13 +264,13 @@ def list_books(event):
                     url=thumbnail_url,
                     size="full",
                     aspect_ratio="20:13",
-                    aspect_mode="cover",
+                    aspect_mode="fit",
                     action=URIAction(uri="https://line.me/")
                 ),
                 body=BoxComponent(
                     layout="vertical",
                     contents=[
-                        TextComponent(text=book.title, weight="bold", size="xl"),
+                        TextComponent(text=book.title, weight="bold", size="lg"),
                         BoxComponent(
                             layout="vertical",
                             margin="lg",
@@ -292,6 +292,11 @@ def list_books(event):
                     layout="vertical",
                     spacing="sm",
                     contents=[
+                        ButtonComponent(
+                            style="link",
+                            height="sm",
+                            action=URIAction(label="詳細", uri=f"https://example.com/books/{book.id}")
+                        ),
                         ButtonComponent(
                             style="link",
                             height="sm",
