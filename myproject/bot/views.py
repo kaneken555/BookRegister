@@ -59,14 +59,13 @@ def handle_message(event):
         if user_states.get(user_id) == "search_mode":
             # 検索モードの場合、入力されたメッセージを本のタイトルとして検索
             title_query = message_text
-            book_info = search_books(title_query)
+            books = search_books(title_query)
             
             # 検索結果が見つかったか確認
-            if not book_info or book_info['title'] == 'No books found for your query.':
+            if not books:
                 send_response(event.reply_token, "該当する本が見つかりませんでした。別のタイトルを入力してください。")
             else:
-                temporary_storage[user_id] = book_info  # 検索結果を一時的に保存
-                send_book_info_with_thumbnail(event, book_info)
+                send_books_carousel(event, books)  # 複数の検索結果を表示
             
             user_states[user_id] = None  # 検索モードを解除
             send_push_quick_reply(user_id)  # 次の操作を促すクイックリプライを表示
@@ -76,6 +75,18 @@ def handle_message(event):
             user_states[user_id] = "search_mode"
             response = "検索したい本のタイトルを入力してください。"
             send_response(event.reply_token, response)
+
+        elif message_text.startswith("register_"):
+            title = message_text.split("_", 1)[1]  # タイトルを取得
+            books = temporary_storage.get(user_id, [])
+            book_info = next((book for book in books if book['title'].lower() == title.lower()), None)
+            if book_info:
+                perform_long_task(user_id, book_info)
+                send_response(event.reply_token, f"Book '{book_info['title']}' has been saved.")
+            else:
+                send_response(event.reply_token, "Failed to register the book.")
+            send_push_quick_reply(user_id)
+
         elif message_text == "save book":  # 保存する場合
             book_info = temporary_storage.get(user_id)  # 保存された検索結果を取得
             if book_info:
@@ -217,45 +228,94 @@ def search_books(title):
         response.raise_for_status()
     except requests.exceptions.HTTPError as http_err:
         print(f"HTTP error occurred: {http_err}")
-        return {
-            'title': 'Failed to fetch book information due to an HTTP error.',
-            'authors': '',
-            'publisher': '',
-            'description': '',
-            'thumbnail': None
-        }
+        return []
     except requests.exceptions.RequestException as req_err:
         print(f"Request error occurred: {req_err}")
-        return {
-            'title': 'Failed to fetch book information due to a request error.',
-            'authors': '',
-            'publisher': '',
-            'description': '',
-            'thumbnail': None
-        }
+        return []
 
     # レスポンスのJSONデータをパース
     data = response.json()
+    books = []
 
-    if 'items' in data and data['items']:
-        book = data['items'][0]['volumeInfo']
-        book_info = {
-            'title': book.get('title', 'No title available'),
-            'authors': ', '.join(book.get('authors', ['No authors available'])),
-            'publisher': book.get('publisher', 'No publisher available'),
-            'description': book.get('description', 'No description available'),
-            'thumbnail': book.get('imageLinks', {}).get('thumbnail')  # サムネイル画像のURLを取得
-        }
-    else:
-        book_info = {
-            'title': 'No books found for your query.',
-            'authors': '',
-            'publisher': '',
-            'description': '',
-            'thumbnail': None
-        }
+    if 'items' in data:
+        for item in data['items']:
+            book = item['volumeInfo']
+            book_info = {
+                'title': book.get('title', 'No title available'),
+                'authors': ', '.join(book.get('authors', ['No authors available'])),
+                'publisher': book.get('publisher', 'No publisher available'),
+                'description': book.get('description', 'No description available'),
+                'thumbnail': book.get('imageLinks', {}).get('thumbnail')  # サムネイル画像のURLを取得
+            }
+            books.append(book_info)
 
-    return book_info
+    return books
+
+def send_books_carousel(event, books):
+    bubbles = []
+    
+    for book in books:
+        thumbnail_url = book['thumbnail'].replace("http://", "https://") if book['thumbnail'] else "https://via.placeholder.com/300x200.png?text=No+Image"
+
+        bubble = BubbleContainer(
+            hero=ImageComponent(
+                url=thumbnail_url,
+                size="full",
+                aspect_ratio="20:13",
+                aspect_mode="fit",
+                action=URIAction(uri="https://line.me/")  # 適切なURLに変更
+            ),
+            body=BoxComponent(
+                layout="vertical",
+                contents=[
+                    TextComponent(text=book['title'], weight="bold", size="lg"),
+                    BoxComponent(
+                        layout="vertical",
+                        margin="lg",
+                        spacing="sm",
+                        contents=[
+                            BoxComponent(
+                                layout="baseline",
+                                spacing="sm",
+                                contents=[
+                                    TextComponent(text="著者", color="#aaaaaa", size="sm", flex=1),
+                                    TextComponent(text=book['authors'], wrap=True, color="#666666", size="sm", flex=5)
+                                ]
+                            ),
+                            BoxComponent(
+                                layout="baseline",
+                                spacing="sm",
+                                contents=[
+                                    TextComponent(text="概要", color="#aaaaaa", size="sm", flex=1),
+                                    TextComponent(text=book['description'][:100] + "...", wrap=True, color="#666666", size="sm", flex=5)
+                                ]
+                            )
+                        ]
+                    )
+                ]
+            ),
+            footer=BoxComponent(
+                layout="vertical",
+                spacing="sm",
+                contents=[
+                    ButtonComponent(
+                        style="link",
+                        height="sm",
+                        action=MessageAction(label="登録", text=f"register_{book['title']}")
+                    )
+                ],
+                flex=0
+            )
+        )
+        bubbles.append(bubble)
+
+    carousel = CarouselContainer(contents=bubbles)
+    flex_message = FlexSendMessage(alt_text="Search results", contents=carousel)
+    line_bot_api.reply_message(event.reply_token, flex_message)
+
+    # 検索結果を一時的に保存しておく
+    user_id = event.source.user_id
+    temporary_storage[user_id] = books
 
 
 def save_book_info(book_info):
