@@ -66,6 +66,8 @@ def handle_message(event):
             else:
                 response = "No book information to save."
             send_response(event.reply_token, response)
+        elif message_text == "list books":
+            list_books(event)  # 登録中の本のリストを表示
         elif message_text == "menu":  # クイックリプライを表示
             send_quick_reply(event)
         else:
@@ -95,8 +97,8 @@ def send_response(reply_token, message):
 def send_quick_reply(event):
     quick_reply_text = "Please select an option:"
     quick_reply_buttons = [
-        QuickReplyButton(action=MessageAction(label="View Tasks", text="tasklist")),
-        QuickReplyButton(action=MessageAction(label="テクノロジーのニュース", text="news technology"))
+        QuickReplyButton(action=MessageAction(label="本リスト", text="list books")),
+        # QuickReplyButton(action=MessageAction(label="テクノロジーのニュース", text="news technology"))
     ]
     
     quick_reply_message = TextSendMessage(
@@ -244,3 +246,15 @@ def save_book_info(book_info):
         'description': book.description
     }
 
+# 登録中の本リストを表示
+def list_books(event):
+    books = Book.objects.all()  # すべての登録された本を取得
+
+    if books.exists():
+        book_list = "\n".join([f"Title: {book.title}, Authors: {book.authors}" for book in books])
+    else:
+        book_list = "No books are currently registered."
+
+    # メッセージをLINEに送信
+    message = TextSendMessage(text=book_list)
+    line_bot_api.reply_message(event.reply_token, message)
