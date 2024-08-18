@@ -25,12 +25,8 @@ user_states = {}
 # Example: 非同期で実行する関数
 def perform_long_task(user_id, book_info):
     # 長時間かかる処理をここに記述
-    result = save_book_info(book_info)  # データベースに保存する
-    # 結果をユーザーに送信（プッシュメッセージ）
-    line_bot_api.push_message(
-        user_id,
-        TextSendMessage(text=f"Book information saved: {result['title']}")
-    )
+    save_book_info(book_info)  # データベースに保存する
+
 
 @csrf_exempt
 def callback(request):
@@ -87,15 +83,15 @@ def handle_message(event):
                 send_response(event.reply_token, "Failed to register the book.")
             send_push_quick_reply(user_id)
 
-        elif message_text == "save book":  # 保存する場合
-            book_info = temporary_storage.get(user_id)  # 保存された検索結果を取得
-            if book_info:
-                # 長時間の処理は別スレッドで実行
-                threading.Thread(target=perform_long_task, args=(user_id, book_info)).start()
-                response = "Your request is being processed."
-            else:
-                response = "No book information to save."
-            send_response(event.reply_token, response)
+        # elif message_text == "save book":  # 保存する場合
+        #     book_info = temporary_storage.get(user_id)  # 保存された検索結果を取得
+        #     if book_info:
+        #         # 長時間の処理は別スレッドで実行
+        #         threading.Thread(target=perform_long_task, args=(user_id, book_info)).start()
+        #         response = "Your request is being processed."
+        #     else:
+        #         response = "No book information to save."
+        #     send_response(event.reply_token, response)
         elif message_text == "list books":
             list_books(event)  # 登録中の本のリストを表示
             send_push_quick_reply(user_id)  # 次の操作を促すクイックリプライを表示
