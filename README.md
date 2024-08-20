@@ -12,5 +12,5 @@ Messaging APIを用いて本の検索と登録ができるアプリを作成し�
 登録リスト確認  
 
 ### 使用技術
-言語：Python
+言語：Python  
 フレームワーク：Django
