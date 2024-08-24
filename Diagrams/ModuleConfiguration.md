@@ -31,6 +31,7 @@ classDiagram
 
     class DatabaseHelpers {
         +save_book_info()
+        +list_books()
         +delete_book_by_id()
     }
 
