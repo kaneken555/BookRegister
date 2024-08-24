@@ -6,8 +6,8 @@ from .helpers import send_books_carousel  # helpersからsend_books_carousel関�
 
 from .models import Book
 from linebot.models import BubbleContainer, ImageComponent, BoxComponent, TextComponent, ButtonComponent, CarouselContainer, FlexSendMessage, TextSendMessage
-from linebot.models.actions import URIAction
-from .database_helpers import save_book_info
+from linebot.models.actions import URIAction, MessageAction
+from .database_helpers import save_book_info, delete_book_by_id
 
 
 def handle_search_mode(event, user_id, message_text, user_states, temporary_storage, line_bot_api):
@@ -59,6 +59,25 @@ def handle_default(event, line_bot_api):
         text=quick_reply_text,
         quick_reply_buttons=quick_reply_buttons
     )
+
+
+def handle_delete_book(event, user_id, message_text, line_bot_api):
+    """
+    本の削除を処理する
+    """
+    book_id = message_text.split("_", 1)[1]  # IDを取得
+    success = delete_book_by_id(book_id)
+    if success:
+        response = f"Book with ID {book_id} has been deleted."
+    else:
+        response = f"Book with ID {book_id} could not be found."
+    send_response(line_bot_api, event.reply_token, response)
+
+    # 次の操作を促すクイックリプライを送信
+    send_push_quick_reply(line_bot_api, user_id, "次の操作を選択してください:", [
+        create_quick_reply_button("検索", "検索"),
+        create_quick_reply_button("本リスト", "list books")
+    ])
 
 
 def perform_long_task(user_id, book_info, line_bot_api):
@@ -118,7 +137,7 @@ def list_books(event, line_bot_api):
                         ButtonComponent(
                             style="link",
                             height="sm",
-                            action=URIAction(label="delete", uri="https://line.me/")
+                            action=MessageAction(label="delete", text=f"delete_{book.id}")
                         )
                     ],
                     flex=0
