@@ -11,6 +11,7 @@ import requests
 from .models import Book
 import threading  # 非同期処理のためのモジュール
 from linebot.models import CarouselContainer, URIAction
+from .search import search_books  # search_books 関数をインポート
 
 
 line_bot_api = LineBotApi(settings.LINE_CHANNEL_ACCESS_TOKEN)
@@ -30,7 +31,10 @@ def perform_long_task(user_id, book_info):
 
 @csrf_exempt
 def callback(request):
-    signature = request.headers['X-Line-Signature']
+    signature = request.headers.get('X-Line-Signature')
+    if not signature:
+        return HttpResponse(status=400)  # 署名がない場合は 400 を返す
+
     body = request.body.decode('utf-8')
 
     try:
@@ -214,38 +218,38 @@ def send_book_info_with_thumbnail(event, book_info):
         send_response(event.reply_token, book_text)
 
 
-def search_books(title):
-    api_key = settings.GOOGLE_BOOKS_API_KEY
-    url = f"https://www.googleapis.com/books/v1/volumes?q=intitle:{title}&key={api_key}"
+# def search_books(title):
+#     api_key = settings.GOOGLE_BOOKS_API_KEY
+#     url = f"https://www.googleapis.com/books/v1/volumes?q=intitle:{title}&key={api_key}"
 
-    try:
-        # APIリクエストを実行し、ステータスコードが200以外の場合は例外を発生させる
-        response = requests.get(url)
-        response.raise_for_status()
-    except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err}")
-        return []
-    except requests.exceptions.RequestException as req_err:
-        print(f"Request error occurred: {req_err}")
-        return []
+#     try:
+#         # APIリクエストを実行し、ステータスコードが200以外の場合は例外を発生させる
+#         response = requests.get(url)
+#         response.raise_for_status()
+#     except requests.exceptions.HTTPError as http_err:
+#         print(f"HTTP error occurred: {http_err}")
+#         return []
+#     except requests.exceptions.RequestException as req_err:
+#         print(f"Request error occurred: {req_err}")
+#         return []
 
-    # レスポンスのJSONデータをパース
-    data = response.json()
-    books = []
+#     # レスポンスのJSONデータをパース
+#     data = response.json()
+#     books = []
 
-    if 'items' in data:
-        for item in data['items']:
-            book = item['volumeInfo']
-            book_info = {
-                'title': book.get('title', 'No title available'),
-                'authors': ', '.join(book.get('authors', ['No authors available'])),
-                'publisher': book.get('publisher', 'No publisher available'),
-                'description': book.get('description', 'No description available'),
-                'thumbnail': book.get('imageLinks', {}).get('thumbnail')  # サムネイル画像のURLを取得
-            }
-            books.append(book_info)
+#     if 'items' in data:
+#         for item in data['items']:
+#             book = item['volumeInfo']
+#             book_info = {
+#                 'title': book.get('title', 'No title available'),
+#                 'authors': ', '.join(book.get('authors', ['No authors available'])),
+#                 'publisher': book.get('publisher', 'No publisher available'),
+#                 'description': book.get('description', 'No description available'),
+#                 'thumbnail': book.get('imageLinks', {}).get('thumbnail')  # サムネイル画像のURLを取得
+#             }
+#             books.append(book_info)
 
-    return books
+#     return books
 
 def send_books_carousel(event, books):
     bubbles = []
