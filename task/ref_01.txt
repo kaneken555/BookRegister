@@ -3,3 +3,4 @@
 
 詳細：
 ①search_books関数の分離(search.py)
+②LINE Bot関連機能の分離(linebot_helpers.py)
