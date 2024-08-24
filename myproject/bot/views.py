@@ -13,6 +13,10 @@ import threading  # 非同期処理のためのモジュール
 from linebot.models import CarouselContainer, URIAction
 from .search import search_books  # search_books 関数をインポート
 from .linebot_helpers import send_response, send_quick_reply, send_push_quick_reply, create_quick_reply_button
+from .handlers import handle_search_mode, handle_register, handle_list_books, handle_default
+from .helpers import send_books_carousel  # helpersからインポート
+from .database_helpers import save_book_info
+
 
 
 
@@ -59,43 +63,47 @@ def handle_message(event):
     try:
         # ユーザーが検索モードかどうか確認
         if user_states.get(user_id) == "search_mode":
-            # 検索モードの場合、入力されたメッセージを本のタイトルとして検索
-            title_query = message_text
-            books = search_books(title_query)
+            handle_search_mode(event, user_id, message_text, user_states, temporary_storage, line_bot_api)
+
+            # # 検索モードの場合、入力されたメッセージを本のタイトルとして検索
+            # title_query = message_text
+            # books = search_books(title_query)
             
-            # 検索結果が見つかったか確認
-            if not books:
-                send_response(event.reply_token, "該当する本が見つかりませんでした。別のタイトルを入力してください。")
-            else:
-                send_books_carousel(event, books)  # 複数の検索結果を表示
+            # # 検索結果が見つかったか確認
+            # if not books:
+            #     send_response(line_bot_api, event.reply_token, "該当する本が見つかりませんでした。別のタイトルを入力してください。")
+            # else:
+            #     send_books_carousel(event, books)  # 複数の検索結果を表示
             
-            user_states[user_id] = None  # 検索モードを解除
-            # send_push_quick_reply(user_id)  # 次の操作を促すクイックリプライを表示
-            send_push_quick_reply(line_bot_api, user_id, "次の操作を選択してください:", [
-                create_quick_reply_button("検索", "検索"),
-                create_quick_reply_button("本リスト", "list books")
-            ])
+            # user_states[user_id] = None  # 検索モードを解除
+            # # send_push_quick_reply(user_id)  # 次の操作を促すクイックリプライを表示
+            # send_push_quick_reply(line_bot_api, user_id, "次の操作を選択してください:", [
+            #     create_quick_reply_button("検索", "検索"),
+            #     create_quick_reply_button("本リスト", "list books")
+            # ])
 
         elif message_text == "検索":
             # 検索モードに変更
             user_states[user_id] = "search_mode"
             response = "検索したい本のタイトルを入力してください。"
-            send_response(event.reply_token, response)
+            send_response(line_bot_api, event.reply_token, response)
 
         elif message_text.startswith("register_"):
-            title = message_text.split("_", 1)[1]  # タイトルを取得
-            books = temporary_storage.get(user_id, [])
-            book_info = next((book for book in books if book['title'].lower() == title.lower()), None)
-            if book_info:
-                perform_long_task(user_id, book_info)
-                send_response(event.reply_token, f"Book '{book_info['title']}' has been saved.")
-            else:
-                send_response(event.reply_token, "Failed to register the book.")
-            # send_push_quick_reply(user_id)
-            send_push_quick_reply(line_bot_api, user_id, "次の操作を選択してください:", [
-                create_quick_reply_button("検索", "検索"),
-                create_quick_reply_button("本リスト", "list books")
-            ])
+            handle_register(event, user_id, message_text, temporary_storage, line_bot_api)
+
+            # title = message_text.split("_", 1)[1]  # タイトルを取得
+            # books = temporary_storage.get(user_id, [])
+            # book_info = next((book for book in books if book['title'].lower() == title.lower()), None)
+            # if book_info:
+            #     perform_long_task(user_id, book_info)
+            #     send_response(line_bot_api, event.reply_token, f"Book '{book_info['title']}' has been saved.")
+            # else:
+            #     send_response(line_bot_api, event.reply_token, "Failed to register the book.")
+            # # send_push_quick_reply(user_id)
+            # send_push_quick_reply(line_bot_api, user_id, "次の操作を選択してください:", [
+            #     create_quick_reply_button("検索", "検索"),
+            #     create_quick_reply_button("本リスト", "list books")
+            # ])
 
         # elif message_text == "save book":  # 保存する場合
         #     book_info = temporary_storage.get(user_id)  # 保存された検索結果を取得
@@ -107,17 +115,22 @@ def handle_message(event):
         #         response = "No book information to save."
         #     send_response(event.reply_token, response)
         elif message_text == "list books":
-            list_books(event)  # 登録中の本のリストを表示
-            # send_push_quick_reply(user_id)  # 次の操作を促すクイックリプライを表示
-            send_push_quick_reply(line_bot_api, user_id, "次の操作を選択してください:", [
-                create_quick_reply_button("検索", "検索"),
-                create_quick_reply_button("本リスト", "list books")
-            ])
-        elif message_text == "menu":  # クイックリプライを表示
-            send_quick_reply(event)
+            handle_list_books(event, line_bot_api)
+
+            # list_books(event)  # 登録中の本のリストを表示
+            # # send_push_quick_reply(user_id)  # 次の操作を促すクイックリプライを表示
+            # send_push_quick_reply(line_bot_api, user_id, "次の操作を選択してください:", [
+            #     create_quick_reply_button("検索", "検索"),
+            #     create_quick_reply_button("本リスト", "list books")
+            # ])
+        # elif message_text == "menu":  # クイックリプライを表示
+        #     pass
+            # send_quick_reply(event)
         else:
             # 初回メッセージなどその他のメッセージはクイックリプライを表示
-            send_quick_reply(event)
+            # send_quick_reply(event)
+            handle_default(event, line_bot_api)
+
 
     except LineBotApiError as e:
         print(f"LineBotApiError: {e.status_code}, {e.message}")
@@ -125,6 +138,8 @@ def handle_message(event):
             print(f"  {detail.property}: {detail.message}")
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+
+
 
 
 # def send_response(reply_token, message):
@@ -265,164 +280,164 @@ def send_book_info_with_thumbnail(event, book_info):
 
 #     return books
 
-def send_books_carousel(event, books):
-    bubbles = []
+# def send_books_carousel(event, books):
+#     bubbles = []
     
-    for book in books:
-        thumbnail_url = book['thumbnail'].replace("http://", "https://") if book['thumbnail'] else "https://via.placeholder.com/300x200.png?text=No+Image"
+#     for book in books:
+#         thumbnail_url = book['thumbnail'].replace("http://", "https://") if book['thumbnail'] else "https://via.placeholder.com/300x200.png?text=No+Image"
 
-        bubble = BubbleContainer(
-            hero=ImageComponent(
-                url=thumbnail_url,
-                size="full",
-                aspect_ratio="20:13",
-                aspect_mode="fit",
-                action=URIAction(uri="https://line.me/")  # 適切なURLに変更
-            ),
-            body=BoxComponent(
-                layout="vertical",
-                contents=[
-                    TextComponent(text=book['title'], weight="bold", size="lg"),
-                    BoxComponent(
-                        layout="vertical",
-                        margin="lg",
-                        spacing="sm",
-                        contents=[
-                            BoxComponent(
-                                layout="baseline",
-                                spacing="sm",
-                                contents=[
-                                    TextComponent(text="著者", color="#aaaaaa", size="sm", flex=1),
-                                    TextComponent(text=book['authors'], wrap=True, color="#666666", size="sm", flex=5)
-                                ]
-                            ),
-                            BoxComponent(
-                                layout="baseline",
-                                spacing="sm",
-                                contents=[
-                                    TextComponent(text="概要", color="#aaaaaa", size="sm", flex=1),
-                                    TextComponent(text=book['description'][:100] + "...", wrap=True, color="#666666", size="sm", flex=5)
-                                ]
-                            )
-                        ]
-                    )
-                ]
-            ),
-            footer=BoxComponent(
-                layout="vertical",
-                spacing="sm",
-                contents=[
-                    ButtonComponent(
-                        style="link",
-                        height="sm",
-                        action=MessageAction(label="登録", text=f"register_{book['title']}")
-                    )
-                ],
-                flex=0
-            )
-        )
-        bubbles.append(bubble)
+#         bubble = BubbleContainer(
+#             hero=ImageComponent(
+#                 url=thumbnail_url,
+#                 size="full",
+#                 aspect_ratio="20:13",
+#                 aspect_mode="fit",
+#                 action=URIAction(uri="https://line.me/")  # 適切なURLに変更
+#             ),
+#             body=BoxComponent(
+#                 layout="vertical",
+#                 contents=[
+#                     TextComponent(text=book['title'], weight="bold", size="lg"),
+#                     BoxComponent(
+#                         layout="vertical",
+#                         margin="lg",
+#                         spacing="sm",
+#                         contents=[
+#                             BoxComponent(
+#                                 layout="baseline",
+#                                 spacing="sm",
+#                                 contents=[
+#                                     TextComponent(text="著者", color="#aaaaaa", size="sm", flex=1),
+#                                     TextComponent(text=book['authors'], wrap=True, color="#666666", size="sm", flex=5)
+#                                 ]
+#                             ),
+#                             BoxComponent(
+#                                 layout="baseline",
+#                                 spacing="sm",
+#                                 contents=[
+#                                     TextComponent(text="概要", color="#aaaaaa", size="sm", flex=1),
+#                                     TextComponent(text=book['description'][:100] + "...", wrap=True, color="#666666", size="sm", flex=5)
+#                                 ]
+#                             )
+#                         ]
+#                     )
+#                 ]
+#             ),
+#             footer=BoxComponent(
+#                 layout="vertical",
+#                 spacing="sm",
+#                 contents=[
+#                     ButtonComponent(
+#                         style="link",
+#                         height="sm",
+#                         action=MessageAction(label="登録", text=f"register_{book['title']}")
+#                     )
+#                 ],
+#                 flex=0
+#             )
+#         )
+#         bubbles.append(bubble)
 
-    carousel = CarouselContainer(contents=bubbles)
-    flex_message = FlexSendMessage(alt_text="Search results", contents=carousel)
-    line_bot_api.reply_message(event.reply_token, flex_message)
+#     carousel = CarouselContainer(contents=bubbles)
+#     flex_message = FlexSendMessage(alt_text="Search results", contents=carousel)
+#     line_bot_api.reply_message(event.reply_token, flex_message)
 
-    # 検索結果を一時的に保存しておく
-    user_id = event.source.user_id
-    temporary_storage[user_id] = books
+#     # 検索結果を一時的に保存しておく
+#     user_id = event.source.user_id
+#     temporary_storage[user_id] = books
 
 
-def save_book_info(book_info):
-    title = book_info.get('title', 'No title available')
-    authors = book_info.get('authors', 'No authors available')
-    publisher = book_info.get('publisher', 'No publisher available')
-    description = book_info.get('description', 'No description available')
-    thumbnail = book_info.get('thumbnail', 'No thumnail available')  # サムネイルURLを取得
+# def save_book_info(book_info):
+#     title = book_info.get('title', 'No title available')
+#     authors = book_info.get('authors', 'No authors available')
+#     publisher = book_info.get('publisher', 'No publisher available')
+#     description = book_info.get('description', 'No description available')
+#     thumbnail = book_info.get('thumbnail', 'No thumnail available')  # サムネイルURLを取得
 
-    # Bookモデルに保存
-    book = Book.objects.create(
-        title=title,
-        authors=authors,
-        publisher=publisher,
-        description=description,
-        thumbnail=thumbnail  # サムネイルURLを保存
+#     # Bookモデルに保存
+#     book = Book.objects.create(
+#         title=title,
+#         authors=authors,
+#         publisher=publisher,
+#         description=description,
+#         thumbnail=thumbnail  # サムネイルURLを保存
 
-    )
+#     )
 
-    # 保存した本の情報を返す
-    return {
-        'title': book.title,
-        'authors': book.authors,
-        'publisher': book.publisher,
-        'description': book.description
-    }
+#     # 保存した本の情報を返す
+#     return {
+#         'title': book.title,
+#         'authors': book.authors,
+#         'publisher': book.publisher,
+#         'description': book.description
+#     }
 
-# 登録中の本リストを表示
-def list_books(event):
-    books = Book.objects.all()  # すべての登録された本を取得
+# # 登録中の本リストを表示
+# def list_books(event):
+#     books = Book.objects.all()  # すべての登録された本を取得
     
-    if books.exists():
-        bubbles = []
+#     if books.exists():
+#         bubbles = []
         
-        for book in books:
-            # URLがhttpの場合はhttpsに変換
-            thumbnail_url = book.thumbnail if book.thumbnail else "https://via.placeholder.com/300x200.png?text=No+Image"
-            thumbnail_url = thumbnail_url.replace("http://", "https://")
+#         for book in books:
+#             # URLがhttpの場合はhttpsに変換
+#             thumbnail_url = book.thumbnail if book.thumbnail else "https://via.placeholder.com/300x200.png?text=No+Image"
+#             thumbnail_url = thumbnail_url.replace("http://", "https://")
 
-            bubble = BubbleContainer(
-                hero=ImageComponent(
-                    url=thumbnail_url,
-                    size="full",
-                    aspect_ratio="20:13",
-                    aspect_mode="fit",
-                    action=URIAction(uri="https://line.me/")
-                ),
-                body=BoxComponent(
-                    layout="vertical",
-                    contents=[
-                        TextComponent(text=book.title, weight="bold", size="lg"),
-                        BoxComponent(
-                            layout="vertical",
-                            margin="lg",
-                            spacing="sm",
-                            contents=[
-                                BoxComponent(
-                                    layout="baseline",
-                                    spacing="sm",
-                                    contents=[
-                                        TextComponent(text="著者", color="#aaaaaa", size="sm", flex=1),
-                                        TextComponent(text=book.authors, wrap=True, color="#666666", size="sm", flex=5)
-                                    ]
-                                )
-                            ]
-                        )
-                    ]
-                ),
-                footer=BoxComponent(
-                    layout="vertical",
-                    spacing="sm",
-                    contents=[
-                        ButtonComponent(
-                            style="link",
-                            height="sm",
-                            action=URIAction(label="詳細", uri=f"https://example.com/books/{book.id}")
-                        ),
-                        ButtonComponent(
-                            style="link",
-                            height="sm",
-                            action=URIAction(label="delete", uri="https://line.me/")
-                        )
-                    ],
-                    flex=0
-                )
-            )
-            bubbles.append(bubble)
+#             bubble = BubbleContainer(
+#                 hero=ImageComponent(
+#                     url=thumbnail_url,
+#                     size="full",
+#                     aspect_ratio="20:13",
+#                     aspect_mode="fit",
+#                     action=URIAction(uri="https://line.me/")
+#                 ),
+#                 body=BoxComponent(
+#                     layout="vertical",
+#                     contents=[
+#                         TextComponent(text=book.title, weight="bold", size="lg"),
+#                         BoxComponent(
+#                             layout="vertical",
+#                             margin="lg",
+#                             spacing="sm",
+#                             contents=[
+#                                 BoxComponent(
+#                                     layout="baseline",
+#                                     spacing="sm",
+#                                     contents=[
+#                                         TextComponent(text="著者", color="#aaaaaa", size="sm", flex=1),
+#                                         TextComponent(text=book.authors, wrap=True, color="#666666", size="sm", flex=5)
+#                                     ]
+#                                 )
+#                             ]
+#                         )
+#                     ]
+#                 ),
+#                 footer=BoxComponent(
+#                     layout="vertical",
+#                     spacing="sm",
+#                     contents=[
+#                         ButtonComponent(
+#                             style="link",
+#                             height="sm",
+#                             action=URIAction(label="詳細", uri=f"https://example.com/books/{book.id}")
+#                         ),
+#                         ButtonComponent(
+#                             style="link",
+#                             height="sm",
+#                             action=URIAction(label="delete", uri="https://line.me/")
+#                         )
+#                     ],
+#                     flex=0
+#                 )
+#             )
+#             bubbles.append(bubble)
 
-        carousel = CarouselContainer(contents=bubbles)
+#         carousel = CarouselContainer(contents=bubbles)
 
-        flex_message = FlexSendMessage(alt_text="Book list", contents=carousel)
-        line_bot_api.reply_message(event.reply_token, flex_message)
+#         flex_message = FlexSendMessage(alt_text="Book list", contents=carousel)
+#         line_bot_api.reply_message(event.reply_token, flex_message)
 
-    else:
-        message = TextSendMessage(text="No books are currently registered.")
-        line_bot_api.reply_message(event.reply_token, message)
+#     else:
+#         message = TextSendMessage(text="No books are currently registered.")
+#         line_bot_api.reply_message(event.reply_token, message)
