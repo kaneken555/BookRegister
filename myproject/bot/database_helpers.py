@@ -23,3 +23,14 @@ def save_book_info(book_info):
         'publisher': book.publisher,
         'description': book.description
     }
+
+def delete_book_by_id(book_id):
+    """
+    指定されたIDの本をデータベースから削除する
+    """
+    try:
+        book = Book.objects.get(id=book_id)
+        book.delete()
+        return True
+    except Book.DoesNotExist:
+        return False

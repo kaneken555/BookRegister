@@ -13,7 +13,7 @@ import threading  # 非同期処理のためのモジュール
 from linebot.models import CarouselContainer, URIAction
 from .search import search_books  # search_books 関数をインポート
 from .linebot_helpers import send_response, send_quick_reply, send_push_quick_reply, create_quick_reply_button, send_book_info_with_thumbnail
-from .handlers import handle_search_mode, handle_register, handle_list_books, handle_default
+from .handlers import handle_search_mode, handle_register, handle_list_books, handle_default, handle_delete_book
 from .helpers import send_books_carousel  # helpersからインポート
 from .database_helpers import save_book_info
 
@@ -123,6 +123,9 @@ def handle_message(event):
             #     create_quick_reply_button("検索", "検索"),
             #     create_quick_reply_button("本リスト", "list books")
             # ])
+        elif message_text.startswith("delete_"):
+            handle_delete_book(event, user_id, message_text, line_bot_api)
+            
         else:
             # 初回メッセージなどその他のメッセージはクイックリプライを表示
             # send_quick_reply(event)
