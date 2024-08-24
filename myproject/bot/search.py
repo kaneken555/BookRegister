@@ -12,6 +12,7 @@ def search_books(title):
     except requests.exceptions.RequestException as e:
         print(f"Request failed: {e}")
         return []
+    # レスポンスのJSONデータをパース
     data = response.json()
     books = []
     if 'items' in data:
