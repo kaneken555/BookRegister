@@ -12,7 +12,7 @@ from .models import Book
 import threading  # 非同期処理のためのモジュール
 from linebot.models import CarouselContainer, URIAction
 from .search import search_books  # search_books 関数をインポート
-from .linebot_helpers import send_response, send_quick_reply, send_push_quick_reply, create_quick_reply_button
+from .linebot_helpers import send_response, send_quick_reply, send_push_quick_reply, create_quick_reply_button, send_book_info_with_thumbnail
 from .handlers import handle_search_mode, handle_register, handle_list_books, handle_default
 from .helpers import send_books_carousel  # helpersからインポート
 from .database_helpers import save_book_info
@@ -138,9 +138,6 @@ def handle_message(event):
 
 
 
-
-
-
 # def send_quick_reply(event):
 #     quick_reply_text = "Please select an option:"
 #     quick_reply_buttons = [
@@ -174,61 +171,3 @@ def handle_message(event):
 #         user_id,
 #         quick_reply_message
 #     )
-    
-
-def send_book_info_with_thumbnail(event, book_info):
-    if book_info['thumbnail']:
-        # HTTPS URL に変換
-        thumbnail_url = book_info['thumbnail'].replace("http://", "https://")
-
-        # Flex Messageでサムネイル画像付きのメッセージを送信
-        flex_message = FlexSendMessage(
-            alt_text="Book information",
-            contents=BubbleContainer(
-                direction="ltr",
-                hero=ImageComponent(
-                    url=thumbnail_url,
-                    size="full",
-                    aspect_ratio="4:3",
-                    aspect_mode="fit"
-                ),
-                body=BoxComponent(
-                    layout="vertical",
-                    contents=[
-                        TextComponent(text=f"Title: {book_info['title']}", weight="bold", size="lg", wrap=True),
-                        TextComponent(text=f"Authors: {book_info['authors']}", size="sm", wrap=True),
-                        TextComponent(text=f"Publisher: {book_info['publisher']}", size="sm", wrap=True),
-                        SeparatorComponent(margin="md"),
-                        TextComponent(text=f"Description: {book_info['description'][:300]}...", size="sm", wrap=True)
-                    ]
-                ),
-                footer=BoxComponent(
-                    layout="vertical",
-                    contents=[
-                        ButtonComponent(
-                            style="link",
-                            height="sm",
-                            action=MessageAction(label="Save Book", text="save book")
-                        )
-                    ]
-                )
-            )
-        )
-
-        try:
-            line_bot_api.reply_message(
-                event.reply_token,
-                flex_message
-            )
-        except LineBotApiError as e:
-            print(f"LineBotApiError (flex reply failed): {e.status_code}, {e.message}")
-            print(f"Flex Message: {flex_message}")
-    else:
-        # サムネイルがない場合は通常のテキストメッセージを送信
-        book_text = (
-            f"Title: {book_info['title']}\n"
-            f"Authors: {book_info['authors']}\n"
-            f"Publisher: {book_info['publisher']}\n"
-            f"Description: {book_info['description']}"
-        )
-        send_response(event.reply_token, book_text)
