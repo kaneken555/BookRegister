@@ -13,6 +13,7 @@ class Task(models.Model):
 
 class Book(models.Model):
     # user = models.ForeignKey(User, on_delete=models.CASCADE)  # ユーザーと本を関連付けるフィールド
+    google_books_id = models.CharField(max_length=255, unique=True)  # Google Books APIから取得した本のID
     title = models.CharField(max_length=255)
     authors = models.CharField(max_length=255)
     publisher = models.CharField(max_length=255, null=True, blank=True)

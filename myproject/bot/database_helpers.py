@@ -3,18 +3,23 @@
 from .models import Book
 
 def save_book_info(book_info):
+    google_books_id = book_info.get('google_books_id')
     title = book_info.get('title', 'No title available')
     authors = book_info.get('authors', 'No authors available')
     publisher = book_info.get('publisher', 'No publisher available')
     description = book_info.get('description', 'No description available')
     thumbnail = book_info.get('thumbnail', 'No thumbnail available')
 
-    book = Book.objects.create(
-        title=title,
-        authors=authors,
-        publisher=publisher,
-        description=description,
-        thumbnail=thumbnail
+    # google_books_idで既存の本を取得し、なければ新しく作成する
+    book, created = Book.objects.get_or_create(
+        google_books_id=google_books_id,
+        defaults={
+            'title': title,
+            'authors': authors,
+            'publisher': publisher,
+            'description': description,
+            'thumbnail': thumbnail,
+        }
     )
 
     return {
