@@ -14,8 +14,8 @@ Messaging APIを用いて本の検索と登録ができるアプリを作成し�
 
 ### 使用技術
 言語：Python  
-フレームワーク：Django
-DB:MYSQL
+フレームワーク：Django  
+DB：MYSQL
 
 ### システム構成図
 <img src="https://github.com/kaneken555/BookRegister/blob/main/Diagrams/SystemConfiguration.drawio.svg" alt="システムアーキテクチャ" width="500">
