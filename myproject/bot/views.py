@@ -140,37 +140,3 @@ def handle_message(event):
         print(f"An unexpected error occurred: {e}")
 
 
-
-# def send_quick_reply(event):
-#     quick_reply_text = "Please select an option:"
-#     quick_reply_buttons = [
-#         QuickReplyButton(action=MessageAction(label="検索", text="検索")),
-#         QuickReplyButton(action=MessageAction(label="本リスト", text="list books")),
-#     ]
-    
-#     quick_reply_message = TextSendMessage(
-#         text=quick_reply_text,
-#         quick_reply=QuickReply(items=quick_reply_buttons)
-#     )
-    
-#     line_bot_api.reply_message(
-#         event.reply_token,
-#         quick_reply_message
-#     )
-
-# def send_push_quick_reply(user_id):
-#     quick_reply_text = "操作を選択してください:"
-#     quick_reply_buttons = [
-#         QuickReplyButton(action=MessageAction(label="検索", text="検索")),
-#         QuickReplyButton(action=MessageAction(label="本リスト", text="list books"))
-#     ]
-    
-#     quick_reply_message = TextSendMessage(
-#         text=quick_reply_text,
-#         quick_reply=QuickReply(items=quick_reply_buttons)
-#     )
-    
-#     line_bot_api.push_message(
-#         user_id,
-#         quick_reply_message
-#     )
