@@ -6,16 +6,18 @@ LINE　APIを用いた読みたい本を登録できるアプリ
 ### 概要
 Messaging APIを用いて本の検索と登録ができるアプリを作成しました。
 
+
 ### 機能
 本検索（Google Book API）  
 登録  
-登録リスト確認/削除  
+登録リスト確認/削除/詳細確認  
 
 
 ### 使用技術
 言語：Python  
 フレームワーク：Django  
 DB：MYSQL
+
 
 ### システム構成図
 <img src="https://github.com/kaneken555/BookRegister/blob/main/Diagrams/SystemConfiguration.drawio.svg" alt="システムアーキテクチャ" width="500">
