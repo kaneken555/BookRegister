@@ -19,6 +19,7 @@ def search_books(title):
         for item in data['items']:
             book = item['volumeInfo']
             book_info = {
+                'google_books_id': item.get('id', 'No ID available'),  # 本のIDを取得
                 'title': book.get('title', 'No title available'),
                 'authors': ', '.join(book.get('authors', ['No authors available'])),
                 'publisher': book.get('publisher', 'No publisher available'),
