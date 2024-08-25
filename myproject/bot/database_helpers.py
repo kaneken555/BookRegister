@@ -3,6 +3,7 @@
 from .models import Book
 from linebot.models import BubbleContainer, ImageComponent, BoxComponent, TextComponent, ButtonComponent, CarouselContainer, FlexSendMessage, TextSendMessage
 from linebot.models.actions import URIAction, MessageAction
+from urllib.parse import quote
 
 def save_book_info(book_info):
     google_books_id = book_info.get('google_books_id')
@@ -55,6 +56,11 @@ def list_books(event, line_bot_api):
             thumbnail_url = book.thumbnail if book.thumbnail else "https://via.placeholder.com/300x200.png?text=No+Image"
             thumbnail_url = thumbnail_url.replace("http://", "https://")
 
+            # タイトルをURLエンコード
+            encoded_title = quote(book.title, safe='')  # すべての特殊文字をエンコード
+            # URIActionで使用するURIを生成
+            uri = f"https://www.google.co.jp/books/edition/{encoded_title}/{book.google_books_id}?hl=ja&gbpv=0"
+
             bubble = BubbleContainer(
                 hero=ImageComponent(
                     url=thumbnail_url,
@@ -91,7 +97,7 @@ def list_books(event, line_bot_api):
                         ButtonComponent(
                             style="link",
                             height="sm",
-                            action=URIAction(label="詳細", uri=f"https://example.com/books/{book.id}")
+                            action=URIAction(label="詳細", uri=uri)
                         ),
                         ButtonComponent(
                             style="link",
