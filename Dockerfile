@@ -17,10 +17,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app/
 
-# .envファイルの内容を読み込む
-COPY .env /app/.env
-
-# 環境変数の設定
+# 環境変数を設定
+ARG DJANGO_SECRET_KEY
+ENV DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
 ENV DJANGO_SETTINGS_MODULE=bookregister.settings
 
 WORKDIR /app/myproject
