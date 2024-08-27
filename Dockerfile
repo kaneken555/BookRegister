@@ -18,7 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /app/
 
 # .envファイルの内容を読み込む
-COPY .env /app/.env
+COPY BookRegister/.env /app/.env
 
 # 環境変数の設定
 ENV DJANGO_SETTINGS_MODULE=bookregister.settings
