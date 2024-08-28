@@ -21,7 +21,7 @@ services:
       context: .
       args:
         DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
-    command: gunicorn --bind 0.0.0.0:8000 bookregister.wsgi:application
+    command: gunicorn --bind 0.0.0.0:8000 --timeout 300 bookregister.wsgi:application
     volumes:
       - .:/app
     ports:
