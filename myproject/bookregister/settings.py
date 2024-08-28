@@ -33,7 +33,7 @@ if not SECRET_KEY:
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
-    '52.65.137.9',
+    '3.24.242.132',
     'localhost',
     '127.0.0.1',
     '4eeb-126-51-206-83.ngrok-free.app', # ngrokのURLを追加
