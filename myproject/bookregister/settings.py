@@ -33,7 +33,7 @@ if not SECRET_KEY:
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
-    '<EC2_PUBLIC_IP>',
+    '52.65.137.9',
     'localhost',
     '127.0.0.1',
     '4eeb-126-51-206-83.ngrok-free.app', # ngrokのURLを追加
@@ -145,4 +145,4 @@ GOOGLE_BOOKS_API_KEY = os.getenv('GOOGLE_BOOKS_API_KEY')
 STATIC_URL = '/static/'
 
 # STATIC_ROOT の設定
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
