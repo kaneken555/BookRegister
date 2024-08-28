@@ -32,12 +32,7 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = [
-    '3.24.242.132',
-    'localhost',
-    '127.0.0.1',
-    '4eeb-126-51-206-83.ngrok-free.app', # ngrokのURLを追加
-]
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 
 # Application definition
 
