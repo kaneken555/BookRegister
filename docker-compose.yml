@@ -5,6 +5,7 @@ services:
     image: mysql:8.0
     volumes:
       - mysql_data:/var/lib/mysql
+      - static_volume:/app/staticfiles
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -46,9 +47,10 @@ services:
       - "80:80"
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./static:/static
+      - static_volume:/app/staticfiles
     depends_on:
       - web
 
 volumes:
+  static_volume:
   mysql_data:
